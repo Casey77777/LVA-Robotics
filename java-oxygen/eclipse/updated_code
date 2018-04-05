@@ -1,0 +1,293 @@
+/*----------------------------------------------------------------------------*/
+/* Copyright (c) 2017-2018 FIRST. All Rights Reserved.                        */
+/* Open Source Software - may be modified and shared by FRC teams. The code   */
+/* must be accompanied by the FIRST BSD license file in the root directory of */
+/* the project.                                                               */
+/*----------------------------------------------------------------------------*/
+
+package org.usfirst.frc.team6824.robot;
+
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+
+import edu.wpi.first.wpilibj.IterativeRobot;
+
+import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Spark;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.Servo;
+import edu.wpi.first.wpilibj.DriverStation;
+
+/**
+ * The VM is configured to automatically run this class, and to call the
+ * functions corresponding to each mode, as described in the IterativeRobot
+ * documentation. If you change the name of this class or the package after
+ * creating this project, you must also update the manifest file in the resource
+ * directory.
+ */
+public class Robot extends IterativeRobot {
+	private DifferentialDrive m_robotDrive
+			= new DifferentialDrive(new Spark(0), new Spark(1));
+	private Joystick m_stick = new Joystick(0);
+	private Joystick m_controller = new Joystick(1);
+	private Timer m_timer = new Timer();
+	private double lastTimeUpdate = 0;
+	private int instructionNumber = 0;
+	private char startingPos = 'R';
+	private int direction = 1;
+	double throwPower = .85;
+	boolean xTurningControls = false;
+	Talon intakeLeftMotor = new Talon(2);
+	Talon intakeRightMotor = new Talon(3);
+	BoxThrower boxThrower = new BoxThrower(1, throwPower);
+
+	// conversion factors
+	double turning_period = 4.75;
+
+
+	/**
+	 * This function is run when the robot is first started up and should be
+	 * used for any initialization code.
+	 */
+	@Override
+	public void robotInit() {
+	}
+
+	/**
+	 * This function is run once each time the robot enters autonomous mode.
+	 */
+	@Override
+	public void autonomousInit() {	
+		m_timer.reset();
+		lastTimeUpdate = 0;
+		instructionNumber = 0;
+		boxThrower.setTime(550);
+		m_timer.start();
+	}
+
+	/**
+	 * This function is called periodically during autonomous.
+	 */
+	@Override
+	public void autonomousPeriodic() {
+		String gameData = DriverStation.getInstance().getGameSpecificMessage();
+		
+		if (gameData.length() > 0)
+		{	
+			// robot starts LEFT ends LEFT
+			if (startingPos == 'L' && gameData.charAt(0) == 'L')
+			{
+				if (m_timer.get() - lastTimeUpdate < 3.2 && instructionNumber == 0) {
+					m_robotDrive.arcadeDrive(-0.65, 0.0); // drive up to side of switch
+				} else if (m_timer.get() - lastTimeUpdate < 0.35 && instructionNumber == 1) {
+					m_robotDrive.arcadeDrive(0.0, 0.8); // turn towards switch
+				} else if (m_timer.get() - lastTimeUpdate < 1.2 && instructionNumber == 2) {
+					m_robotDrive.arcadeDrive(-0.55, 0.0); // drive right up to the switch
+				} else if (instructionNumber == 3) {
+					boxThrower.run();  // throw box
+					nextInstruction();
+				} else {
+					nextInstruction();
+				}
+			}
+			
+			// robot starts RIGHT ends RIGHT
+			if (startingPos == 'R' && gameData.charAt(0) == 'R')
+			{
+				if (m_timer.get() - lastTimeUpdate < 3.2 && instructionNumber == 0) {
+					m_robotDrive.arcadeDrive(-0.65, 0.0); // drive up to side of switch
+				} else if (m_timer.get() - lastTimeUpdate < 0.35 && instructionNumber == 1) {
+					m_robotDrive.arcadeDrive(0.0, -0.8); // turn towards switch
+				} else if (m_timer.get() - lastTimeUpdate < 1.2 && instructionNumber == 2) {
+					m_robotDrive.arcadeDrive(-0.55, 0.0); // drive right up to the switch
+				} else if (instructionNumber == 3) {
+					boxThrower.run();  // throw box
+					nextInstruction();
+				} else {
+					nextInstruction();
+				}
+			}
+			
+			// robot starts RIGHT ends LEFT
+			if (startingPos == 'R' && gameData.charAt(0) == 'L')
+			{
+				if (m_timer.get() - lastTimeUpdate < 3.2 && instructionNumber == 0) {
+					m_robotDrive.arcadeDrive(-0.65, 0.0); // drive up to side of switch
+				} else {
+					nextInstruction();
+				}
+				
+				/*
+				if (m_timer.get() - lastTimeUpdate < 0.3 && instructionNumber == 0) {
+					m_robotDrive.stopMotor();
+				} else if (m_timer.get() - lastTimeUpdate < 5.5 && instructionNumber == 1) {
+					m_robotDrive.arcadeDrive(-0.65, 0.0);  // drive to side of switch
+				} else if (m_timer.get() - lastTimeUpdate < 0.4 && instructionNumber == 2) {
+					m_robotDrive.arcadeDrive(0.0, -0.80);  // quickly turn in place
+				} else if (m_timer.get() - lastTimeUpdate < 5.5 && instructionNumber == 3) {
+					m_robotDrive.arcadeDrive(-0.65, 0.0);  // drive down long side of switch to other side
+				} else if (m_timer.get() - lastTimeUpdate < 0.4 && instructionNumber == 4) {
+					m_robotDrive.arcadeDrive(0.0, -0.80);  // quickly turn in place such that robot faces switch
+				} else if (m_timer.get() - lastTimeUpdate < 0.9 && instructionNumber == 5) {
+					m_robotDrive.arcadeDrive(0.5, 0.0);  // drive a little closer to switch
+				} else if (instructionNumber == 6) {
+					boxThrower.run();  // throw box
+					nextInstruction();
+				} else {
+					nextInstruction();
+				}
+				*/
+			}
+			
+			// robot starts LEFT ends RIGHT
+			if (startingPos == 'L' && gameData.charAt(0) == 'R')
+			{
+				if (m_timer.get() - lastTimeUpdate < 3.2 && instructionNumber == 0) {
+					m_robotDrive.arcadeDrive(-0.65, 0.0); // drive up to side of switch
+				} else {
+					nextInstruction();
+				}
+				
+				/*
+				if (m_timer.get() - lastTimeUpdate < 0.3 && instructionNumber == 0) {
+					m_robotDrive.stopMotor();
+				} else if (m_timer.get() - lastTimeUpdate < 5.5 && instructionNumber == 1) {
+					m_robotDrive.arcadeDrive(-0.65, 0.0);  // drive to side of switch
+				} else if (m_timer.get() - lastTimeUpdate < 0.3 && instructionNumber == 2) {
+					m_robotDrive.arcadeDrive(0.0, 0.80);  // quickly turn in place
+				} else if (m_timer.get() - lastTimeUpdate < 5.5 && instructionNumber == 3) {
+					m_robotDrive.arcadeDrive(-0.65, 0.0);  // drive down long side of switch to other side
+				} else if (m_timer.get() - lastTimeUpdate < 0.3 && instructionNumber == 4) {
+					m_robotDrive.arcadeDrive(0.0, 0.80);  // quickly turn in place such that robot faces switch
+				} else if (m_timer.get() - lastTimeUpdate < 0.5 && instructionNumber == 5) {
+					m_robotDrive.arcadeDrive(0.35, 0.0);  // drive a little closer to switch
+				} else if (instructionNumber == 6) {
+					boxThrower.run();  // throw box
+					nextInstruction();
+				} else {
+					nextInstruction();
+				}
+				*/
+				if (startingPos != 'L' && startingPos != 'R')
+				{
+					m_robotDrive.arcadeDrive(0, 0);
+				}
+				
+			}
+		}
+	}
+
+	/**
+	 * This function is called once each time the robot enters teleoperated mode.
+	 */
+	@Override
+	public void teleopInit() {
+		boxThrower.setTime(450);
+	}
+
+	/**
+	 * This function is called periodically during teleoperated mode.
+	 */
+	@Override
+	public void teleopPeriodic() {
+		
+		double driving_power = -(m_stick.getThrottle() - 1) / 2; 
+		double intake_power_left = m_controller.getRawAxis(1) * .5;
+		double intake_power_right = -m_controller.getRawAxis(5) * .5;
+		double xDrive = m_stick.getX();
+		double yDrive = m_stick.getY() * direction;
+		double zDrive = m_stick.getZ();
+		
+		if (m_stick.getTrigger()) {
+			System.out.println("TRIGGER ACTIVE");
+		}
+		
+		if (m_stick.getRawButtonPressed(2))
+		{
+			boxThrower.run();  // throws box (activates boxThrower motor object for a set duration)
+		}
+		
+		// unison intake
+		if (m_controller.getRawButton(9))
+		{
+			intakeLeftMotor.set(-intake_power_right);
+			intakeRightMotor.set(-intake_power_right);
+		} else {  // independent intake
+			intakeLeftMotor.set(intake_power_left);
+			intakeRightMotor.set(-intake_power_right);
+		}
+		System.out.println("Left Motor: " + intakeLeftMotor.get() + "Right Motor: " + intakeRightMotor.get());
+		
+		if (m_stick.getRawButtonPressed(11))
+		{
+			if (xTurningControls)
+			{
+				xTurningControls = false;
+			} else {
+				xTurningControls = true;
+			}
+		}
+		System.out.println("X Turning Controls: " + xTurningControls);
+		
+		// inverts forward/backward driving
+		if (m_stick.getRawButtonPressed(12))
+		{
+			direction *= -1;
+		}
+		
+		// toggles between joystick controls for turning
+		if (xTurningControls)
+		{
+			m_robotDrive.arcadeDrive(yDrive * driving_power, xDrive * driving_power);
+		} else {
+			m_robotDrive.arcadeDrive(yDrive * driving_power, zDrive * driving_power * 0.9);
+		}
+		System.out.println("X-speed: " + xDrive + "\tY-speed: " + -yDrive + "\tZ-speed: " + zDrive + "\tSpeed: " + driving_power);
+		
+	}
+
+	/**
+	 * This function is called periodically during test mode.
+	 */
+	@Override
+	public void testPeriodic() {
+	}
+	
+	private void nextInstruction() {
+		lastTimeUpdate = m_timer.get();
+		m_robotDrive.stopMotor();
+		instructionNumber += 1;
+	}
+}
+
+// class for use of threads
+class BoxThrower extends TalonSRX implements Runnable {
+	private long time;
+	private double throwPower = 0;
+	
+	BoxThrower(int channel, double throwPower) {
+		super(channel);
+		this.throwPower = throwPower; 
+	}
+	
+	public void run(long time) {
+		try {
+			this.set(ControlMode.PercentOutput, this.throwPower); 
+			Thread.sleep(time);  // SETTING TIME PASSED 650 WILL RUN THE BOXTHROWER PASSED ITS MAXIMUM
+			this.set(ControlMode.PercentOutput, 0); 
+			
+		} catch (InterruptedException e) {
+			return;
+		}
+	}
+	
+	public void run() {
+		run(this.time);
+	}
+	
+	public void setTime(long time) { this.time = time; }
+}
+
+// Programmers: Casey Johnson, Leland Fenton
